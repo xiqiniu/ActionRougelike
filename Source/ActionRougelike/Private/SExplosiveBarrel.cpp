@@ -2,6 +2,8 @@
 
 
 #include "SExplosiveBarrel.h"
+
+#include "DrawDebugHelpers.h"
 #include "Components/StaticMeshComponent.h"
 #include "PhysicsEngine/RadialForceComponent.h"
 
@@ -39,9 +41,22 @@ void ASExplosiveBarrel::PostInitializeComponents()
 
 }
 
-void ASExplosiveBarrel::OnActorHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & hit)
+void ASExplosiveBarrel::OnActorHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent * OtherComp, FVector NormalImpulse, const FHitResult & Hit)
 {
 	RadialForceComp->FireImpulse();
+
+	//第一个参数 -- Log类型
+	//第二个参数 -- Log/Warning/Error
+	//第三个参数 -- 要打印的信息
+	UE_LOG(LogTemp,Log,TEXT("OnActorHit in Explosive Barrel"));
+
+	//注意打印String时加*
+	UE_LOG(LogTemp,Warning,TEXT("OtherActor: %s, at game time:%f"),*GetNameSafe(OtherActor),GetWorld()->TimeSeconds);
+	FString CombinedString = FString::Printf(TEXT("Hit at location : %s"),*Hit.ImpactPoint.ToString());
+
+	// 第一个和第二个参数已经传递了世界和坐标,第四个参数就不需要指明Actor了,否则只能在Actor上打印字符串
+	// 2.0f -- 持续时间 true -- 画出阴影
+	DrawDebugString(GetWorld(),Hit.ImpactPoint,CombinedString,nullptr,FColor::Green,2.0f,true);
 }
 
 // Called when the game starts or when spawned

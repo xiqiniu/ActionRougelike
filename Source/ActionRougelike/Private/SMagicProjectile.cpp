@@ -2,45 +2,44 @@
 
 
 #include "SMagicProjectile.h"
+
+#include "SCharacter.h"
 #include "Components\SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "SAttributeComponent.h"
+#include "SGameplayFunctionLibrary.h"
 
 // Sets default values
 ASMagicProjectile::ASMagicProjectile()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	SphereComp = CreateDefaultSubobject<USphereComponent>("SphereComp");
-	
-	//设置碰撞的第一种方法 -- 设置类型,设置对各种类型的反应
-	/*SphereComp->SetCollisionObjectType(ECC_WorldDynamic);
-	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
-	SphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);*/
-
-	//设置碰撞的第二种方法 -- 设置碰撞预设
-	SphereComp->SetCollisionProfileName("Projectile");
-	
-	RootComponent = SphereComp;
-
-	EffectComp = CreateDefaultSubobject<UParticleSystemComponent>("EffectComp");
-	EffectComp->SetupAttachment(SphereComp);
-
-	MovementComp = CreateDefaultSubobject<UProjectileMovementComponent>("MovementComp");
-	MovementComp->InitialSpeed = 1000.0f;
-	MovementComp->bRotationFollowsVelocity = true;
-	MovementComp->bInitialVelocityInLocalSpace = true;
+	SphereComp->OnComponentBeginOverlap.AddDynamic(this,&ASMagicProjectile::OnActorOverlap);
+	//设置伤害
+	DamageAmount=50.0f;
 }
 
-// Called when the game starts or when spawned
-void ASMagicProjectile::BeginPlay()
+void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	Super::BeginPlay();
+	//如果打中了Actor且打中的对象不是子弹的发射者
+	 if(OtherActor&&OtherActor!=GetInstigator())
+	 {
+	 	// //如果打中的Actor有SAttributeComponent
+	 	// USAttributeComponent* AttributeComp = Cast<USAttributeComponent>(OtherActor->GetComponentByClass(USAttributeComponent::StaticClass()));
+		 //
+	 	// if(AttributeComp)
+	 	// {
+	 	// 	AttributeComp->ApplyHealthChange(GetInstigator(),-Damage);
+		 //
+	 	// 	//打中后销毁子弹
+	 	// 	Destroy();
+	 	// }
+
+	 	if(USGameplayFunctionLibrary::ApplyDirectionalDamage(GetInstigator(),OtherActor,DamageAmount,SweepResult))
+	 	{
+	 		Explode();
+	 	}
+	 }
 }
 
-// Called every frame
-void ASMagicProjectile::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
 

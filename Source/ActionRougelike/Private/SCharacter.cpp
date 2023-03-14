@@ -6,6 +6,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "SAttributeComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -32,6 +34,15 @@ ASCharacter::ASCharacter()
 	//禁用controller控制旋转
 	bUseControllerRotationYaw = false;
 
+	AttributeComp=CreateDefaultSubobject<USAttributeComponent>("AttributeComp");
+	ActionComp=CreateDefaultSubobject<USActionComponent>("ActionComp");
+	
+	TimeToHitParamName="TimeToHit";
+}
+
+void ASCharacter::HealSelf(float Amount /* =100 */)
+{
+	AttributeComp->ApplyHealthChange(this,Amount);
 }
 
 // Called when the game starts or when spawned
@@ -41,27 +52,37 @@ void ASCharacter::BeginPlay()
 	
 }
 
-// Called every frame
-void ASCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
 // Called to bind functionality to input
 void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	//人物移动
 	PlayerInputComponent->BindAxis("MoveForward", this, &ASCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ASCharacter::MoveRight);
 
+	//镜头移动
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
+	//攻击
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ASCharacter::PrimaryAttack);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("BlackHoleAttack", IE_Pressed, this, &ASCharacter::BlackHoleAttack);
+	PlayerInputComponent->BindAction("Dash ", IE_Pressed, this, &ASCharacter::Dash);
 
+	//跳跃和互动
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("PrimaryInteract",IE_Pressed,this,&ASCharacter::PrimaryInteract);
+
+	//能力
+	PlayerInputComponent->BindAction("Sprint",IE_Pressed,this,&ASCharacter::SprintStart);
+	PlayerInputComponent->BindAction("Sprint",IE_Released,this,&ASCharacter::SprintStop);
+}
+
+void ASCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AttributeComp->OnHealthChanged.AddDynamic(this,&ASCharacter::OnHealthChanged);
 }
 
 void ASCharacter::MoveForward(float value)
@@ -86,18 +107,14 @@ void ASCharacter::MoveRight(float value)
 	AddMovementInput(RightVector, value);
 }
 
-void ASCharacter::PrimaryAttack()
+void ASCharacter::SprintStart()
 {
-	//播放攻击动画
-	PlayAnimMontage(AttackAnim);
+	ActionComp->StartActionByName(this,"Sprint");
+}
 
-	//第一个参数--计时器句柄 如果想停止播放动画可以清除句柄实现停止
-	//举例:GetWorldTimerManager().ClearTimer(TimerHandle_PrimaryAttack);
-	//第二个参数--调用的对象
-	//第三个参数--计时器时间到了后执行的函数
-	//第四个参数--计时器的时间
-	GetWorldTimerManager().SetTimer(TimerHandle_PrimaryAttack,this,&ASCharacter::PrimaryAttack_TimeElapsed,0.2f);
-	
+void ASCharacter::SprintStop()
+{
+	ActionComp->StopActionByName(this,"Sprint");
 }
 
 void ASCharacter::PrimaryInteract()
@@ -108,16 +125,38 @@ void ASCharacter::PrimaryInteract()
 	}
 }
 
-void ASCharacter::PrimaryAttack_TimeElapsed()
+void ASCharacter::PrimaryAttack()
 {
-	//Muzzle_01 -- 手部骨骼的位置,如果没有socket可以打开编辑器addsocket
-	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
-	FTransform SpawnTM = FTransform(GetActorRotation(), HandLocation);
-	FActorSpawnParameters SpawnParams;
+	ActionComp->StartActionByName(this,"PrimaryAttack");
+}
 
-	//設置instigator -- instigator 用于传递调用该函数的物体
-	SpawnParams.Instigator=this;
-	//设置总是生成
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTM, SpawnParams);
+void ASCharacter::BlackHoleAttack()
+{
+	ActionComp->StartActionByName(this,"BlackholeAttack");
+}
+
+void ASCharacter::Dash()
+{
+	ActionComp->StartActionByName(this,"Dash");
+}
+
+void ASCharacter::OnHealthChanged(AActor* InstigatorActor, USAttributeComponent* OwningComp, float NewHealth,
+                                  float Delta)
+{
+	//受击效果
+	if(Delta<0.0f)
+	{
+		GetMesh()->SetScalarParameterValueOnMaterials(TimeToHitParamName,GetWorld()->TimeSeconds);
+	}
+	
+	if(NewHealth<=0.0f&&Delta<0.0f)
+	{
+		APlayerController * PC = Cast<APlayerController>(GetController());
+		DisableInput(PC);
+	}
+}
+
+FVector ASCharacter::GetPawnViewLocation() const
+{
+	return CameraComp->GetComponentLocation();
 }

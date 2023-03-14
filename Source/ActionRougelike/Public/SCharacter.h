@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SActionComponent.h"
+#include "SAttributeComponent.h"
 #include "GameFramework/Character.h"
 #include "SCharacter.generated.h"
 
@@ -10,6 +12,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class USInteractionComponent;
 class UAnimMontage;
+class USAttributeComponent;
 
 UCLASS()
 class ACTIONROUGELIKE_API ASCharacter : public ACharacter
@@ -17,47 +20,73 @@ class ACTIONROUGELIKE_API ASCharacter : public ACharacter
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(EditAnywhere,Category="Attack")
-	TSubclassOf<AActor> ProjectileClass;
+	/*
+	VisibleAnywhere -- 在哪都能看到
+	VisibleDefaultOnly -- 只能在蓝图编辑器中看到
 
-	UPROPERTY(EditAnywhere,Category = "Attack")
-	UAnimMontage* AttackAnim;
 
+	EditAnywhere -- 能看并且能改
+	EditDefaultOnly -- 只能在蓝图编辑器中编辑,对实例隐藏
+
+	BlueprintReadOnly -- 在蓝图中能读
+	BluePrintReadWrite -- 在蓝图中能读写
+	*/
 	FTimerHandle TimerHandle_PrimaryAttack;
-public:
-	// Sets default values for this character's properties
-	ASCharacter();
+	FTimerHandle TimerHandle_Dash;
+	FTimerHandle TimerHandle_BlackHoleAttack;
 
-protected:
+	UPROPERTY(VisibleAnywhere,Category="Effects")
+	FName TimeToHitParamName;
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere)
-	UCameraComponent * CameraComp;
+	UCameraComponent* CameraComp;
 
 	UPROPERTY(VisibleAnywhere)
-	USpringArmComponent * SpringArmComp;
+	USpringArmComponent* SpringArmComp;
 
 	UPROPERTY(VisibleAnywhere)
 	USInteractionComponent* InteractionComp;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")
+	USAttributeComponent* AttributeComp;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")
+	USActionComponent* ActionComp;
 	
 	void MoveForward(float value);
 	
 	void MoveRight(float value);
+
+	void SprintStart();
+
+	void SprintStop();
 	
 	void PrimaryAttack();
 
 	void PrimaryInteract();
 
-	void PrimaryAttack_TimeElapsed();
-
+	void BlackHoleAttack();
 	
+	void Dash();
+	
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor,USAttributeComponent* OwningComp,float NewHealth,float Delta);
 
+	virtual FVector GetPawnViewLocation() const override;
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void PostInitializeComponents() override;
+
+	ASCharacter();
+
+	UFUNCTION(Exec)
+	void HealSelf(float Amount = 100);
 };
+
+
+

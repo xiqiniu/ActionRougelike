@@ -22,12 +22,11 @@ protected:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
 	UStaticMeshComponent* StaticMeshComp;
 
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere,BlueprintReadWrite)
 	URadialForceComponent* RadialForceComp;
 
 	virtual void PostInitializeComponents() override;
-
-	//????UFunction()????????
+	
 	UFUNCTION()
 	void OnActorHit(UPrimitiveComponent * HitComponent, AActor * OtherActor, UPrimitiveComponent *OtherComp, FVector NormalImpulse, const FHitResult &hit);
 

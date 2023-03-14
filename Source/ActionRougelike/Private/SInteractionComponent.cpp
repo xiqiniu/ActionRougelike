@@ -2,9 +2,10 @@
 
 
 #include "SInteractionComponent.h"
-
 #include "DrawDebugHelpers.h"
 #include "SGameplayInterface.h"
+
+static TAutoConsoleVariable<bool> CVarDebugDrawInteraction(TEXT("su.InteractionDebugDraw"),false,TEXT("Enable Debug Lines for Interact Component."),ECVF_Cheat);
 
 // Sets default values for this component's properties
 USInteractionComponent::USInteractionComponent()
@@ -37,6 +38,7 @@ void USInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void USInteractionComponent::PrimaryInteract()
 {
+	bool bDebugDraw=CVarDebugDrawInteraction.GetValueOnGameThread();
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 
@@ -70,7 +72,7 @@ void USInteractionComponent::PrimaryInteract()
 	//第二种实现 -- 球体检测,从起点发出一个球移动到终点,返回中途碰到的物体
 	//FQquat::Identity -- 不增加任何旋转
 	TArray<FHitResult> Hits;
-	float Radius = 30.0f;
+	float Radius = 50.0f;
 	FCollisionShape Shape;
 	Shape.SetSphere(Radius);
 	bool bBlockingHit = GetWorld()->SweepMultiByObjectType(Hits,EyeLocation,End,FQuat::Identity,ObjectQueryParams,Shape);
@@ -78,6 +80,10 @@ void USInteractionComponent::PrimaryInteract()
 	for(FHitResult Hit:Hits)
 	{
 		AActor* HitActor= Hit.GetActor();
+		if(bDebugDraw)
+		{
+			DrawDebugSphere(GetWorld(),Hit.ImpactPoint,Radius,32,LineColor,false,2.0f);
+		}
 		if(HitActor)
 		{
 			if (HitActor->Implements<USGameplayInterface>())
@@ -87,12 +93,14 @@ void USInteractionComponent::PrimaryInteract()
 		
 				//第一个参数是调用接口的对象,因为在接口中定义的参数是Pawn,所以第二个参数需要转型
 				ISGameplayInterface::Execute_Interact(HitActor,MyPawn);
-
-				// DrawDebugSphere(GetWorld(),Hit.ImpactPoint,Radius,32,LineColor,false,2.0f);
+				
 				//我们希望一次操作只能与一个物体互动
 				break;
 			}
 		}
 	}
-	DrawDebugLine(GetWorld(),EyeLocation,End,LineColor,false,2.0f,0,2.0f);
+	if(bDebugDraw)
+	{
+		DrawDebugLine(GetWorld(),EyeLocation,End,LineColor,false,2.0f,0,2.0f);
+	}
 }
