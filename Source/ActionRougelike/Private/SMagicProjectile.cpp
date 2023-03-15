@@ -22,22 +22,29 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	//如果打中了Actor且打中的对象不是子弹的发射者
-	 if(OtherActor&&OtherActor!=GetInstigator())
+	 if(OtherActor && OtherActor!=GetInstigator())
 	 {
-	 	// //如果打中的Actor有SAttributeComponent
-	 	// USAttributeComponent* AttributeComp = Cast<USAttributeComponent>(OtherActor->GetComponentByClass(USAttributeComponent::StaticClass()));
-		 //
-	 	// if(AttributeComp)
-	 	// {
-	 	// 	AttributeComp->ApplyHealthChange(GetInstigator(),-Damage);
-		 //
-	 	// 	//打中后销毁子弹
-	 	// 	Destroy();
-	 	// }
+		//获取tTag的另一种方式
+	 	// static FGameplayTag Tag = FGameplayTag::RequestGameplayTag("Status.Parrying");
+	 	
+	 	USActionComponent* ActionComp = Cast<USActionComponent>(OtherActor->GetComponentByClass(USActionComponent::StaticClass()));
+		if(ActionComp && ActionComp->ActiveGameplayTags.HasTag(ParryTag))
+		{
+			MoveComp->Velocity = -MoveComp->Velocity;
 
+			SetInstigator(Cast<APawn>(OtherActor));
+
+			return;
+		}
+	 	
 	 	if(USGameplayFunctionLibrary::ApplyDirectionalDamage(GetInstigator(),OtherActor,DamageAmount,SweepResult))
 	 	{
 	 		Explode();
+
+	 		if(ActionComp)
+	 		{
+	 			ActionComp->AddAction(BurningActionClass,GetInstigator());
+	 		}
 	 	}
 	 }
 }

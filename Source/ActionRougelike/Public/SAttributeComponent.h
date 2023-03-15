@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "SAttributeComponent.generated.h"
-
+class USAttributeComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnHealthChanged,AActor*, InstigatorActor,USAttributeComponent*,OwningComp
 	,float, NewHealth,float,Delta);
 

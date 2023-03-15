@@ -23,7 +23,8 @@ ASAICharacter::ASAICharacter()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	AttributeComp=CreateDefaultSubobject<USAttributeComponent>("AttributeComp");
-
+	ActionComp = CreateDefaultSubobject<USActionComponent>("ActionComp");
+	
 	TimeToHitParamName="TimeToHit";
 	
 }
