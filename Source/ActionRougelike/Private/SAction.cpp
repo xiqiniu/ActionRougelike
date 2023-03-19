@@ -2,28 +2,46 @@
 
 
 #include "SAction.h"
+#include "SActionComponent.h"
+#include "ActionRougelike/ActionRougelike.h"
+#include "Net/UnrealNetwork.h"
+
+void USAction::Initialize(USActionComponent* NewActionComp)
+{
+	ActionComp = NewActionComp;
+}
 
 void USAction::StartAction_Implementation(AActor* Instigator)
 {
-	UE_LOG(LogTemp,Log,TEXT("Running: %s"),*GetNameSafe(this));
-
+	// UE_LOG(LogTemp,Log,TEXT("Running: %s"),*GetNameSafe(this));
+	// LogOnScreen(this,FString::Printf(TEXT("Started: %s"),*ActionName.ToString()),FColor::Green);
 	USActionComponent* Comp = GetOwningComponent();
 
 	Comp->ActiveGameplayTags.AppendTags(GrantsTags);
 
-	bIsRunning = true;
+	RepData.bIsRunning = true;
+	RepData.Instigator = Instigator;
+
+	if(GetOwningComponent()->GetOwnerRole() == ROLE_Authority)
+	{
+		TimeStarted = GetWorld()->TimeSeconds;
+	}
+	GetOwningComponent()->OnActionStarted.Broadcast(GetOwningComponent(),this);
 }
 
 void USAction::StopAction_Implementation(AActor* Instigator)
 {
-	UE_LOG(LogTemp,Log,TEXT("Stopped: %s"),*GetNameSafe(this));
-
-	ensureAlways(bIsRunning);
+	// UE_LOG(LogTemp,Log,TEXT("Stopped: %s"),*GetNameSafe(this));
+	// LogOnScreen(this,FString::Printf(TEXT("Stopped: %s"),*ActionName.ToString()),FColor::White);
+	
 	USActionComponent* Comp = GetOwningComponent();
 
 	Comp->ActiveGameplayTags.RemoveTags(GrantsTags);
 
-	bIsRunning = false;
+	RepData.bIsRunning = false;
+	RepData.Instigator = Instigator;
+
+	GetOwningComponent()->OnActionStopped.Broadcast(GetOwningComponent(),this);
 }
 
 bool USAction::CanStart_Implementation(AActor* Instigator)
@@ -45,20 +63,50 @@ bool USAction::CanStart_Implementation(AActor* Instigator)
 
 bool USAction::IsRunning() const
 {
-	return bIsRunning;
+	return RepData.bIsRunning;
 }
 
 UWorld* USAction::GetWorld() const
 {
-	UActorComponent* Comp=Cast<UActorComponent>(GetOuter());
-	if(Comp)
+	AActor* Actor=Cast<AActor>(GetOuter());
+	if(Actor)
 	{
-		return Comp->GetWorld();
+		return Actor->GetWorld();
 	}
 	return nullptr;
 }
 
 USActionComponent* USAction::GetOwningComponent() const
 {
-	return Cast<USActionComponent>(GetOuter());
+	//对于服务器和客户端,此处GetOuter()得到的结果不一样,所以需要修改
+	// return Cast<USActionComponent>(GetOuter());
+	
+	//也不能这么做
+	// AActor* Actor = Cast<AActor>(GetOuter());
+	// return Actor->GetComponentByClass(USActionComponent::StaticClass());
+
+	return ActionComp;
 }
+
+void USAction::OnRep_RepData()
+{
+	if(RepData.bIsRunning)
+	{
+		StartAction(RepData.Instigator);
+	}
+	else
+	{
+		StopAction(RepData.Instigator);
+	}
+}
+
+void USAction::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(USAction,RepData);
+	DOREPLIFETIME(USAction,ActionComp);
+	DOREPLIFETIME(USAction,TimeStarted);
+}
+
+           

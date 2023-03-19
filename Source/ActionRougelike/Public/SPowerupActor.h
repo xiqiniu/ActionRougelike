@@ -18,6 +18,12 @@ public:
 	ASPowerupActor();
 
 protected:
+	UPROPERTY(ReplicatedUsing="OnRep_IsActive")
+	bool bIsActive;
+
+	UFUNCTION()
+	void OnRep_IsActive();
+	
 	UPROPERTY(EditAnywhere,Category="Powerup")
 	float ReSpawnTime;
 
@@ -32,6 +38,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere,Category="Components")
 	USphereComponent *SphereComp;
+
+	UPROPERTY(VisibleAnywhere,Category="Components")
+	UStaticMeshComponent* MeshComp;
 public:	
 	void Interact_Implementation(APawn* InstigatorPawn) override;
+
+	virtual FText GetInteractText_Implementation(APawn* InstigatorPawn) override;
+
 };
+
+

@@ -16,11 +16,8 @@ class ACTIONROUGELIKE_API ASPowerup_HealthPotion : public ASPowerupActor
 public:
 	ASPowerup_HealthPotion();
 protected:
-	UPROPERTY(EditAnywhere,Category="Components")
-	UMeshComponent *MeshComp;
-
 	UPROPERTY(EditAnywhere,Category="Credits")
 	int32 CreditCost;
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;
-	
+	virtual FText GetInteractText_Implementation(APawn* InstigatorPawn) override;
 };

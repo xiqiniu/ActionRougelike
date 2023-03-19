@@ -3,21 +3,63 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DataTable.h"
 #include "EnvironmentQuery/EnvQuery.h"
 #include "EnvironmentQuery/EnvQueryInstanceBlueprintWrapper.h"
 #include "GameFramework/GameModeBase.h"
 #include "SGameModeBase.generated.h"
 
+class USSaveGame;
+class UDataTable;
+class USMonsterData;
 /**
  * 
  */
+USTRUCT(BlueprintType)
+struct FMonsterInfoRow: public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+	FMonsterInfoRow()
+	{
+		Weight = 1.0f;
+		SpawnCost = 5.0f;
+		KillReward = 10.0f;
+	}
+	// UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	// USMonsterData*  MonsterData;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	FPrimaryAssetId MonsterId;
+	
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	float Weight;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	float SpawnCost;
+
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	float KillReward;
+};
+
+
 UCLASS()
 class ACTIONROUGELIKE_API ASGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 protected:
-	UPROPERTY(EditDefaultsOnly,Category="AI" )
-	TSubclassOf<AActor> MinionClass;
+	FString SlotName;
+	
+	UPROPERTY()
+	USSaveGame* CurrentSaveGame;
+
+	UPROPERTY(EditDefaultsOnly,Category="AI")
+	UDataTable* MonsterTable;
+
+	//使用DataTable替代了
+	// UPROPERTY(EditDefaultsOnly,Category="AI" )
+	// TSubclassOf<AActor> MinionClass;
+	
 	UPROPERTY(EditDefaultsOnly,Category="AI")
 	UEnvQuery *SpawnBotQuery;
 
@@ -32,6 +74,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AI")
 	int32 CreditsPerKill;
 
+	UPROPERTY(EditDefaultsOnly,BlueprintReadWrite,Category="AI")
+	float RagePerKill;
+	
 	UPROPERTY(EditDefaultsOnly,Category="Powerups")
 	UEnvQuery* PowerupSpawnQuery;
 
@@ -53,11 +98,14 @@ protected:
 	UFUNCTION()
 	void OnBotSpawnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryInstance, EEnvQueryStatus::Type QueryStatus);
 
+	void OnMonsterLoaded(FPrimaryAssetId LoadedId, FVector SpawnLocation);
+	
 	UFUNCTION()
 	void OnPowerupSpawnQueryCompleted(UEnvQueryInstanceBlueprintWrapper* QueryInstance, EEnvQueryStatus::Type QueryStatus);
 
 	UFUNCTION()
 	void RespawnPlayerElapsed(AController* Controller);
+	
 public:
 	virtual void OnActorKilled(AActor *VictimActor,AActor *Killer);
 	
@@ -66,6 +114,13 @@ public:
 
 	UFUNCTION(Exec)
 	void KillAllBot();
+
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 	
-	
+	UFUNCTION(BlueprintCallable,Category="SaveGame")
+	void WriteSaveGame();
+
+	void LoadSaveGame();
 };

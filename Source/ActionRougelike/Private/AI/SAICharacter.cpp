@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "DrawDebugHelpers.h"
+#include "SCharacter.h"
 #include "SWorldUserWidget.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Blueprint/UserWidget.h"
@@ -15,7 +16,7 @@
 // Sets default values
 ASAICharacter::ASAICharacter()
 {
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic,ECR_Ignore);
+	// GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic,ECR_Ignore);
 	GetMesh()->SetGenerateOverlapEvents((true));
 	
  	PawnSensingComp=CreateDefaultSubobject<UPawnSensingComponent>("PawnSensingComp");
@@ -26,7 +27,6 @@ ASAICharacter::ASAICharacter()
 	ActionComp = CreateDefaultSubobject<USActionComponent>("ActionComp");
 	
 	TimeToHitParamName="TimeToHit";
-	
 }
 
 void ASAICharacter::SetTargetActor(AActor* NewTarget)
@@ -38,6 +38,8 @@ void ASAICharacter::SetTargetActor(AActor* NewTarget)
 	}
 }
 
+
+
 void ASAICharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -46,15 +48,45 @@ void ASAICharacter::PostInitializeComponents()
 	AttributeComp->OnHealthChanged.AddDynamic(this,&ASAICharacter::OnHealthChanged);
 }
 
+AActor* ASAICharacter::GetTargetActor()
+{
+	AAIController * AIC=Cast<AAIController>(GetController());
+	if(AIC)
+	{
+		return Cast<AActor>(AIC->GetBlackboardComponent()->GetValueAsObject("TargetActor"));
+	}
+	return nullptr;
+}
+
 void ASAICharacter::OnSeePawn(APawn* Pawn)
 {
-	SetTargetActor(Pawn);
+	//只在第一次看到时生成感叹号
+	if(Pawn!=GetTargetActor() && !GetTargetActor())
+	{
+		if(ASCharacter* Character=Cast<ASCharacter>(Pawn))
+		{
+			SetTargetActor(Pawn);
+
+			MulticastPawnSeen();
+		}
+	}
 	
 	// DrawDebugString(GetWorld(),GetActorLocation(),"PLAYER SPOTTED",nullptr,FColor::White,4.0f,true);
 }
 
+void ASAICharacter::MulticastPawnSeen_Implementation()
+{
+	USWorldUserWidget* NewWidget = CreateWidget<USWorldUserWidget>(GetWorld(),SpottedWidgetClass);
+	if(NewWidget)
+	{
+		NewWidget->AttachedActor = this;
+
+		//调整深度使感叹号显示在其他UI前方
+		NewWidget->AddToViewport(10);
+	}
+}
 void ASAICharacter::OnHealthChanged(AActor* InstigatorActor, USAttributeComponent* OwningComp, float NewHealth,
-								  float Delta)
+                                    float Delta)
 {
 	if(Delta<0.0f)
 	{
@@ -63,7 +95,10 @@ void ASAICharacter::OnHealthChanged(AActor* InstigatorActor, USAttributeComponen
 		//设置bot受击后锁定玩家
 		if(InstigatorActor!=this)
 		{
-			SetTargetActor(InstigatorActor);
+			if(ASCharacter* Character=Cast<ASCharacter>(InstigatorActor))
+			{
+				SetTargetActor(InstigatorActor);
+			}
 		}
 
 		if(ActiveHealthBar == nullptr)

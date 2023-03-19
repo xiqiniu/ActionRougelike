@@ -19,7 +19,5 @@ protected:
 	UPROPERTY(EditDefaultsOnly,Category="Credits")
 	int32 CreditsAmount;
 	
-	UPROPERTY(EditAnywhere,Category="Components")
-	UMeshComponent *MeshComp;
 	virtual void Interact_Implementation(APawn* InstigatorPawn) override;
 };

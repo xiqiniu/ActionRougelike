@@ -14,6 +14,8 @@
 ASMagicProjectile::ASMagicProjectile()
 {
 	SphereComp->OnComponentBeginOverlap.AddDynamic(this,&ASMagicProjectile::OnActorOverlap);
+	//设置子弹存在的时间防止没打中目标的子弹一直存在于场景中
+	InitialLifeSpan = 10.0f;
 	//设置伤害
 	DamageAmount=50.0f;
 }
@@ -40,8 +42,8 @@ void ASMagicProjectile::OnActorOverlap(UPrimitiveComponent* OverlappedComponent,
 	 	if(USGameplayFunctionLibrary::ApplyDirectionalDamage(GetInstigator(),OtherActor,DamageAmount,SweepResult))
 	 	{
 	 		Explode();
-
-	 		if(ActionComp)
+				
+	 		if(ActionComp && HasAuthority())
 	 		{
 	 			ActionComp->AddAction(BurningActionClass,GetInstigator());
 	 		}

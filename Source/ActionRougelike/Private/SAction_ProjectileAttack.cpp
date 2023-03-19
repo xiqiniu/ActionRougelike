@@ -24,11 +24,14 @@ void USAction_ProjectileAttack::StartAction_Implementation(AActor* Instigator)
 
 		UGameplayStatics::SpawnEmitterAttached(CastingEffect,Character->GetMesh(),HandSocketName,FVector::ZeroVector,FRotator::ZeroRotator,EAttachLocation::SnapToTarget);
 
-		FTimerHandle TimerHandle_AttackDelay;
-		FTimerDelegate Delegate;
-		Delegate.BindUFunction(this,"AttackDelay_Elapsed",Character);
-
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay,Delegate,AttackAnimDelay,false);
+		//避免生成多于的子弹,举例:服务器调用start,此时客户端bIsRunning为false,所以客户端收到包后也会调用start,就会生成多余的子弹
+		if(Character->HasAuthority())
+		{
+			FTimerHandle TimerHandle_AttackDelay;
+			FTimerDelegate Delegate;
+			Delegate.BindUFunction(this,"AttackDelay_Elapsed",Character);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackDelay,Delegate,AttackAnimDelay,false);
+		}
 	}
 	
 }

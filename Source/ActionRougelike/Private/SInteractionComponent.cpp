@@ -120,13 +120,22 @@ void USInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FindBestInteractable();
+	APawn * MyPawn = Cast<APawn>(GetOwner());
+	if(MyPawn->IsLocallyControlled())
+	{
+		FindBestInteractable();
+	}
 	// ...
 }
 
 void USInteractionComponent::PrimaryInteract()
 {
-	if(FocusedActor == nullptr)
+	ServerInteract(FocusedActor);
+}
+
+void USInteractionComponent::ServerInteract_Implementation(AActor* InFocus)
+{
+	if(InFocus == nullptr)
 	{
 		GEngine->AddOnScreenDebugMessage(-1,1.0f,FColor::Red,"No Focus Actor to interact");
 		return;
@@ -135,5 +144,5 @@ void USInteractionComponent::PrimaryInteract()
 	APawn* MyPawn=Cast<APawn>(GetOwner());
 		
 	//第一个参数是调用接口的对象,因为在接口中定义的参数是Pawn,所以第二个参数需要转型
-	ISGameplayInterface::Execute_Interact(FocusedActor,MyPawn);
+	ISGameplayInterface::Execute_Interact(InFocus,MyPawn);
 }

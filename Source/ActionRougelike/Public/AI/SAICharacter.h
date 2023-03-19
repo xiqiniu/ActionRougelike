@@ -6,10 +6,12 @@
 #include "SActionComponent.h"
 #include "SAttributeComponent.h"
 #include "SWorldUserWidget.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GameFramework/Character.h"
 #include "Perception/PawnSensingComponent.h"
 #include "SAICharacter.generated.h"
 
+class USWorldUserWidget;
 UCLASS()
 class ACTIONROUGELIKE_API ASAICharacter : public ACharacter
 {
@@ -20,12 +22,18 @@ public:
 	ASAICharacter();
 
 protected:
+	UFUNCTION(NetMulticast,Unreliable)
+	void MulticastPawnSeen();
+	
 	USWorldUserWidget* ActiveHealthBar;
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UUserWidget> HealthBarWidgetClass;
 	
 	UPROPERTY(VisibleAnywhere,Category="Effects")
 	FName TimeToHitParamName;
+	
+	UPROPERTY(EditAnywhere,Category="UI")
+	TSubclassOf<USWorldUserWidget> SpottedWidgetClass;
 	
 	void SetTargetActor(AActor *NewTarget);
 	UPROPERTY(VisibleAnywhere,Category="AI")
@@ -45,9 +53,6 @@ protected:
 	UFUNCTION()
 	void OnSeePawn(APawn * Pawn);
 
-
-public:	
-
-
-
+	UFUNCTION(BlueprintCallable)
+	AActor* GetTargetActor();
 };
